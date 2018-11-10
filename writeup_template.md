@@ -16,13 +16,20 @@ The goals and steps of this project are the following:
 
 [//]: # (Image References)
 
-[image1]: ./output_images/undist_calibration1.png "Calibration"
-[image2]: ./test_images/test1.jpg "Road Transformed"
-[image3]: ./examples/binary_combo_example.jpg "Binary Example"
-[image4]: ./examples/warped_straight_lines.jpg "Warp Example"
-[image5]: ./examples/color_fit_lines.jpg "Fit Visual"
-[image6]: ./examples/example_output.jpg "Output"
-[video1]: ./project_video.mp4 "Video"
+[image1]: ./output_images/undist_calibration1.png "Calibration Chessboard"
+[image2]: ./output_images/undist_test_1.png "Undistorted Test Image 1"
+[image3]: ./output_images/undist_test_2.png "Undistorted Test Image 2"
+[image4]: ./output_images/undist_test_3.png "Undistorted Test Image 3"
+[image5]: ./output_images/combined_gray.png "Binary Image of Combined Gradient Thresholds"
+[image6]: ./output_images/color_grad_binary.png "Binary Image of Combined Color and Gradient Thresholds"
+[image7]: ./output_images/thresh_grad_1.png "Thresholded Image 1"
+[image8]: ./output_images/thresh_grad_2.png "Thresholded Image 2"
+[image9]: ./output_images/thresh_grad_3.png "Thresholded Image 3"
+[image10]: ./output_images/thresh_grad_4.png "Thresholded Image 4"
+[image11]: ./output_images/thresh_grad_5.png "Thresholded Image 5"
+[image12]: ./output_images/thresh_grad_6.png "Thresholded Image 6"
+
+[video1]: ./project_video_out_full.mp4 "Video"
 
 ## 2. [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
 
@@ -36,23 +43,58 @@ The code for this step is contained in the 2nd code cell of the IPython notebook
 
 I start by preparing "object points", which will be the (x, y, z) coordinates of the chessboard corners in the world. Here I am assuming the chessboard is fixed on the (x, y) plane at z=0, such that the object points are the same for each calibration image.  Thus, `objp` is just a replicated array of coordinates, and `objpoints` will be appended with a copy of it every time I successfully detect all chessboard corners in a test image.  `imgpoints` will be appended with the (x, y) pixel position of each of the corners in the image plane with each successful chessboard detection.  
 
-I then used the output `objpoints` and `imgpoints` to compute the camera calibration and distortion coefficients using the `cv2.calibrateCamera()` function.  I applied this distortion correction to the test chessboard image on the left below using the `cv2.undistort()` function and obtained this result image on the right below:
-
-![Camera Calibration Result][image1]
-
+I then used the output `objpoints` and `imgpoints` to compute the camera calibration and distortion coefficients using the `cv2.calibrateCamera()` function.  
 
 ### Pipeline (single images)
 
-#### 1. Provide an example of a distortion-corrected image.
+#### 1. Distortion Correction
 
-To demonstrate this step, I will describe how I apply the distortion correction to one of the test images like this one:
-![alt text][image2]
+Once the distortion coefficients are obtained from the calibration step, I use these distortion parameters as the inputs of `cv2.undistort()` function and test chessboard image on the left below using the and obtained this result image on the right below:
 
-#### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
+![Camera Calibration Result][image1]
 
-I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
+Now I apply the distortion correction to some of the test images as below: the left one is always the original image, the right one is the undistorted output image:
+![Distortion Correction Test Image 1 ][image2]
 
-![alt text][image3]
+![Distortion Correction Test Image 2 ][image3]
+
+![Distortion Correction Test Image 3 ][image4]
+
+It shows that after the image distortion correction, there are not much difference between the output images and the input images.
+
+#### 2. Gradient and Color Thresholds
+
+The 3rd section of the IPython notebook are the codes to do color transforms, gradients on the given image and to create a thresholded binary image. Most of the functions in this section are inspired by the lecture contents and solutions to the quizzes. I refactored the original codes a little bit.
+
+In my IPython notebook, I first tried to apply the sobel-x, sobel-y, magnitude, and the direction of the gradient thresholds and showed the results there.
+
+The image below is the result of combining sobel-x, sobel-y, magnitude, and direction functions.
+
+![Binary Image of Combining Gradient Thresholds][image5]
+
+Applying the gradient thresholds makes the processed images in gray scale still look noisy. I hereby defined a function called `color_gradx_thresh()` combining the color and multiple gradient thresholds to generate a binary image below.
+
+![Binary Image of Combined Gradient Thresholds][image6]
+
+In the output image on the above right figure, the lane lines are more observable than the results of only applying the gradient threshold. However, the upper half of the image is all white, same color as the lane lines.
+
+The root cause is because the color threshold parameter used above could not deal well with the lightness but only with the saturation. In the output image of `color_gradx_thresh()` function (see in the IPython notebook), the lane line color has the similar blue color as the sky. So we can tune the color threshold parameters to filter out the blue sky background and mark the lane line with a different color.
+
+I referred other's article posted at https://zhuanlan.zhihu.com/p/35134563 (in Chinese), in which the author used a nice threshold method combining HLS, LAB, LUV color thresholds. Therefore, in my project, I
+1. refactor the source codes into a neat function named `cvt_color_select()` after understanding the original idea;
+2. tune in the color parameters for HLS, LUV, and LAB thresholds to achiever better results compared to filter out more irrelative objects in the image compared with the original author's results.
+
+![Thresholded Image 1 ][image7]
+
+![Thresholded Image 2 ][image8]
+
+![Thresholded Image 3 ][image9]
+
+![Thresholded Image 4 ][image10]
+
+![Thresholded Image 5 ][image11]
+
+![Thresholded Image 6 ][image12]
 
 #### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
 
