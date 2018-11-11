@@ -33,6 +33,7 @@ The goals and steps of this project are the following:
 [image15]: ./output_images/reversed_with_box.png "Restore Lane Source Points with Inverse Matrix"
 [image16]: ./output_images/warp_fit_poly.png "Fit Polynomial of Lane Pixels"
 [image17]: ./output_images/test_pipeline_with_annotation.png "Processed Image with Annotation"
+[image18]: ./output_images/warp_search_around_poly.png "Search Around Polynomial"
 [video1]: ./project_video_out_full.mp4 "Video"
 
 ## 2. [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
@@ -144,7 +145,11 @@ Fortunately, I can simply re-use the codes from the lecture of "Implement Slidin
 
 ![Fitting of the lane-line points][image16]
 
-In the 19th code block, I also re-use the codes from the lecture quiz to define the `search_around_poly()` function. The difference is that here the inputs are the image and the arrays of fitting points of the left and right lines computed by the `fit_polynomial()` function.
+In the 19th code block, I also re-use the codes from the lecture quiz to define the `search_around_poly()` function which uses the previous polynomial to skip the sliding window. So that here the inputs are the image and the arrays of fitting points of the left and right lines computed from the prior step, namely, the `fit_polynomial()` function.
+
+In the figure below, assume that the fitting points of lane lines are given, the function `search_around_poly()` fits the polynomial in terms of these points, instead of using sliding window method, to improve the algorithm efficiency.
+
+![Fit polynomial with previous lines][image18]
 
 #### 5. Calculated the Radius of Curvature and the Vehicle Offset.
 
