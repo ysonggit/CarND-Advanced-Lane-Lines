@@ -148,26 +148,84 @@ In the 19th code block, I also re-use the codes from the lecture quiz to define 
 
 #### 5. Calculated the Radius of Curvature and the Vehicle Offset.
 
-I did this in lines # through # in my code in `my_other_file.py`
+The radius of the lane's curvature is computed in terms of the polynomial equations given in the lecture. So I re-use most of the codes I had done for the lecture quiz of "Measuring Curvature II".
 
-#### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
+Because the original solution uses fake data representing lane-line pixels, the change in the 20th code block is to update the function to let it take actual data from inputs.
 
-I implemented this step in lines # through # in my code in `yet_another_file.py` in the function `map_lane()`.  Here is an example of my result on a test image:
+Meanwhile, the original solution returns only curvatures of the polynomial functions from the left and right lines. I hereby add one more step to compute the average curvature of the left and right curvatures for the final display.
 
-![alt text][image17]
+The codes in the 20th block computes the offset, that is, the lane center from the center of the image. I referred to the `calculate_curv_and_pos()` function in the article [2]. The original author used this one function to return both curvature and offset. I like the author's idea of computing offset because he not only finds both the offset values but also the relative positions, left or right, between the car center and the lane center.
+
+My changes are:
+- Re-factor the offset computation as a single function. I believe this improves the pipeline design because curvature and offset are two independent factors, there is not much correlation between these two values.
+- Remove the hard-coded parameters in the original codes to make the function be more robust and adaptive to different image resolutions.
+
+In the 25th code block, I manually check if the computed curvature and offset of the example image are reasonable values, according to the project's guideline: "the radius of that circle is approximately 1 km".
+
+#### 6. Result Image
+
+As the line boundaries are computed according to the warped image, I apply the computed inverse transform matrix `Minv` to the warp image and project the detected lane boundaries back to the original undistorted image.
+
+The 22nd code block defines the function `draw_area()` to plot the identified lane lines and lane area. The 23rd code block defines the function `annotation()` to annotate the image with the road curvature and the vehicle offset.
+
+![Drivable Area Plotted Back to the Image][image17]
+
+The image above shows an example of the result image. The left lane is red, the right lane is blue, and the drivable region of the lane is highlighted with green color. Meanwhile, when plotting the image, I invoke the `annotation()` function to display the curvature and offset information on the it.
 
 ---
 
 ### Pipeline (video)
 
-#### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
+To implement the entire image processing pipeline, in stead of using the `Line()` class suggested in the project guidelines, I referred to Huijing Huang's work [3]. The advantages of his work are:
 
-Here's a [link to my video result](./project_video.mp4)
+1. It is easy to integrate the above mentioned methods into the Line class;
+2. The sanity check is well defined along the class.
+
+My `Line()` class is defined in the 24th code block and my changes are:
+- As I already defined the most import functions above such as `search_around_poly()`, `fit_polynomial()`, `measure_curvature()`, `measure_offset()`, etc., I simply use those functions to replace Huang's original methods which functions the same.
+- I fixed a bug in Huang's original code:
+```python
+if (self.detected):
+      last_left_fit = self.curr_left_fit[-1]
+      last_right_fit = self.curr_right_fit[-1]
+```
+this part will throw an exception when the array of fitting points, `curr_left_fit` or `curr_right_fit` are empty. So I added a sanity check to handle this case.
+
+The pipeline implementation is in the 26th code block of the notebook. I test the pipeline with the project video and the result looks great.
+
+Here's a [link to my video result](./project_video_out_full.mp4)
 
 ---
 
 ### Discussion
 
-#### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
+#### Problems/issues I had
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+There are two major difficulties I encountered when I work on this project.
+
+1. How to process the input color image to show clearly the lane lines in an output binary image.
+At the beginning, I simply apply the HLS thresholding and gradient threshold methods obtained from the lecture only, the result shows that this idea could not identify the lane line correctly most of the time. Therefore, I refer to the idea introduced in the references [1] and [2], and consider the different color spaces: HLS, LAB, and LUV, at the same time, to improve the robustness of the algorithm when handling the lighting and shadows in the given video.
+
+2. Another difficulty I spent most of my time is to construct the `Line` class with data Sanity Check and Look-Ahead Filter. I refer to Huijing Huang's solution on his Github [3]
+, because his class structure is well defined, very readable, so I can easily integrate the key line detecting and fitting functions of mine. Meanwhile, I fixed a bug in his codes.
+
+#### Where will your pipeline likely fail?
+
+The pitfall of my implementation is that the pipeline will fail when the lane has more than one curves in one image, for example, an "S"-like road ahead of the car.
+
+I test my pipeline with a short clip of the challenge video, here is the [link of the result video](./challenge_video_out_clip.mp4). In the result video, the drivable lane area is not plotted correctly when the "S"-like curves appears in the camera. I consider the main reason is that the polynomial fitting function `fit_polynomial()` fails in this scenario because the it only tries to fit a 2nd order polynomial equation, which is a parabola. However, the lane's shape in this scenario is more like a trigonometric function, such as cosine.
+
+#### What could you do to make it more robust?
+
+Although I refactored the codes from the lectures and the open sources when I work on my implementations, my implementation still have many hard-coded parameters and implicit assumptions. To make my algorithm more robust, using dynamic parameters as much as possible could be my next improvement. For example,
+
+1. When computing the perspective transform, I used hard-coded source and destination points. These values are good to use here but may be adjusted when the camera model is different.
+
+2. When doing the gradient thresholding, I also used many hard-coded parameters. Obviously, there parameters work well in this scenario which has a good lighting condition. However, it may not work if the lighting condition changes, say, in a cloudy/raining day, or the evening before the sunset.
+
+
+## References
+
+1. [CIELAB color space wikipedia](https://en.wikipedia.org/wiki/CIELAB_color_space)
+2. [Lane Finding (车道线检测)](https://zhuanlan.zhihu.com/p/35134563)
+3. [Huijing Huang' Github](https://github.com/dmsehuang/CarND-Advanced-Lane-Lines)
